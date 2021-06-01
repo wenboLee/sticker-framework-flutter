@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:sticker/decoration_element_container_widget.dart';
 
-class RuleLineElementContainerState
-    extends DecorationElementContainerWidgetState {
+import 'decoration_element_container_widget.dart';
+
+class RuleLineElementContainerState extends DecorationElementContainerWidgetState {
   static const String TAG = "heshixi:RLECV";
-  static const double IS_CHECK_X_RULE_THRESHOLD =
-  2.0; // 在 x 轴移动元素 deltaX 低于阈值的时候进行移动规则监测
-  static const double IS_CHECK_Y_RULE_THRESHOLD =
-  2.0; // 在 y 轴移动元素 deltaY 低于阈值的时候进行移动规则监测
+  static const double IS_CHECK_X_RULE_THRESHOLD = 2.0; // 在 x 轴移动元素 deltaX 低于阈值的时候进行移动规则监测
+  static const double IS_CHECK_Y_RULE_THRESHOLD = 2.0; // 在 y 轴移动元素 deltaY 低于阈值的时候进行移动规则监测
   static const double CHECK_X_IS_IN_RULE_THRESHOLD = 2; // 检测元素的 x 是否在规则中的阈值
   static const double CHECK_Y_IS_IN_RULE_THRESHOLD = 2; // 检测元素的 y 是否在规则中的阈值
   // 某次 x 轴移动规则累计吸收的 x 轴移动距离的最大值
@@ -23,7 +21,7 @@ class RuleLineElementContainerState
   // y 轴上的规则监测点，单位为 view 的百分比
   static const List<double> Y_RULES = [0.10, 0.5, 0.90];
 
-  List<RuleLine> mRuleLines = [RuleLine(), RuleLine()];
+  List<RuleLine?> mRuleLines = [RuleLine(), RuleLine()];
   double mXRuleTotalAbsorption = 0; // 某次 x 轴移动规则累计吸收的 x 轴移动距离
   double mYRuleTotalAbsorption = 0; // 某次 y 轴移动规则累计吸收的 y 轴移动距离
   List<Rect> mNoRuleRectList = []; // 不在规则范围内的 Rect 列表
@@ -35,7 +33,7 @@ class RuleLineElementContainerState
     childs.add(super.build(context));
     if (mIsShowRuleLine) {
       childs.add(CustomPaint(
-        size: Size(mEditRect.width, mEditRect.height),
+        size: Size(mEditRect!.width, mEditRect!.height),
         painter: RuleLineWidget(mRuleLines),
       ));
     }
@@ -64,9 +62,8 @@ class RuleLineElementContainerState
       xInRule = (xRulePercent != NOT_IN_RULE);
       if (xInRule) {
         RuleLine xRuleLine = new RuleLine();
-        xRuleLine.mStartPoint = Offset(xRulePercent * mEditRect.width, 0);
-        xRuleLine.mEndPoint =
-            Offset(xRulePercent * mEditRect.width, mEditRect.height);
+        xRuleLine.mStartPoint = Offset(xRulePercent * mEditRect!.width, 0);
+        xRuleLine.mEndPoint = Offset(xRulePercent * mEditRect!.width, mEditRect!.height);
         mRuleLines[0] = xRuleLine;
 
         if (mXRuleTotalAbsorption == 0 && newDeltaX != 0) {
@@ -76,11 +73,9 @@ class RuleLineElementContainerState
         }
         mXRuleTotalAbsorption += newDeltaX;
         if (abs(mXRuleTotalAbsorption) >= X_RULE_TOTAL_ABSORPTION_MAX) {
-          print(
-              "$TAG scrollSelectTapOtherAction clear mXRuleTotalAbsorption:$mXRuleTotalAbsorption");
+          print("$TAG scrollSelectTapOtherAction clear mXRuleTotalAbsorption:$mXRuleTotalAbsorption");
           mXRuleTotalAbsorption = 0;
-          newDeltaX += (newDeltaX < 0 ? -2 * CHECK_X_IS_IN_RULE_THRESHOLD : 2 *
-              CHECK_X_IS_IN_RULE_THRESHOLD);
+          newDeltaX += (newDeltaX < 0 ? -2 * CHECK_X_IS_IN_RULE_THRESHOLD : 2 * CHECK_X_IS_IN_RULE_THRESHOLD);
         } else {
           newDeltaX = 0;
           print(
@@ -100,9 +95,8 @@ class RuleLineElementContainerState
       yInRule = (yRulePercent != NOT_IN_RULE);
       if (yInRule) {
         RuleLine yRuleLine = new RuleLine();
-        yRuleLine.mStartPoint = Offset(0, yRulePercent * mEditRect.height);
-        yRuleLine.mEndPoint =
-            Offset(mEditRect.width, yRulePercent * mEditRect.height);
+        yRuleLine.mStartPoint = Offset(0, yRulePercent * mEditRect!.height);
+        yRuleLine.mEndPoint = Offset(mEditRect!.width, yRulePercent * mEditRect!.height);
         mRuleLines[1] = yRuleLine;
 
         if (mYRuleTotalAbsorption == 0 && newDeltaY != 0) {
@@ -112,11 +106,9 @@ class RuleLineElementContainerState
         }
         mYRuleTotalAbsorption += newDeltaY;
         if (abs(mYRuleTotalAbsorption) >= Y_RULE_TOTAL_ABSORPTION_MAX) {
-          print(
-              "$TAG scrollSelectTapOtherAction clear mYRuleTotalAbsorption:$mYRuleTotalAbsorption");
+          print("$TAG scrollSelectTapOtherAction clear mYRuleTotalAbsorption:$mYRuleTotalAbsorption");
           mYRuleTotalAbsorption = 0;
-          newDeltaY += (newDeltaY < 0 ? -2 * CHECK_Y_IS_IN_RULE_THRESHOLD : 2 *
-              CHECK_Y_IS_IN_RULE_THRESHOLD);
+          newDeltaY += (newDeltaY < 0 ? -2 * CHECK_Y_IS_IN_RULE_THRESHOLD : 2 * CHECK_Y_IS_IN_RULE_THRESHOLD);
         } else {
           newDeltaY = 0;
           print(
@@ -165,41 +157,31 @@ class RuleLineElementContainerState
       return NOT_IN_RULE;
     }
 
-    if (!mSelectedElement.mIsSingeFingerMove) {
+    if (!mSelectedElement!.mIsSingeFingerMove) {
       return NOT_IN_RULE;
     }
 
-    double elementCenterX = mSelectedElement
-        .getContentRect()
-        .center
-        .dx;
-    double elementCenterY = mSelectedElement
-        .getContentRect()
-        .center
-        .dy;
+    double elementCenterX = mSelectedElement!.getContentRect().center.dx;
+    double elementCenterY = mSelectedElement!.getContentRect().center.dy;
     for (int i = 0; i < mNoRuleRectList.length; i++) {
       if (mNoRuleRectList[i].contains(Offset(elementCenterX, elementCenterY))) {
         return NOT_IN_RULE;
       }
     }
 
-    double viewCenterX = mEditRect.width * X_RULES[1];
+    double viewCenterX = mEditRect!.width * X_RULES[1];
     if (abs(viewCenterX - elementCenterX) < CHECK_X_IS_IN_RULE_THRESHOLD) {
       return X_RULES[1];
     }
 
-    double elementLeft = mSelectedElement
-        .getContentRect()
-        .left;
-    double viewLeft = mEditRect.width * X_RULES[0];
+    double elementLeft = mSelectedElement!.getContentRect().left;
+    double viewLeft = mEditRect!.width * X_RULES[0];
     if (abs(viewLeft - elementLeft) < CHECK_X_IS_IN_RULE_THRESHOLD) {
       return X_RULES[0];
     }
 
-    double elementRight = mSelectedElement
-        .getContentRect()
-        .right;
-    double viewRight = mEditRect.width * X_RULES[2];
+    double elementRight = mSelectedElement!.getContentRect().right;
+    double viewRight = mEditRect!.width * X_RULES[2];
     if (abs(viewRight - elementRight) < CHECK_X_IS_IN_RULE_THRESHOLD) {
       return X_RULES[2];
     }
@@ -216,41 +198,31 @@ class RuleLineElementContainerState
       return NOT_IN_RULE;
     }
 
-    if (!mSelectedElement.mIsSingeFingerMove) {
+    if (!mSelectedElement!.mIsSingeFingerMove) {
       return NOT_IN_RULE;
     }
 
-    double elementCenterX = mSelectedElement
-        .getContentRect()
-        .center
-        .dx;
-    double elementCenterY = mSelectedElement
-        .getContentRect()
-        .center
-        .dy;
+    double elementCenterX = mSelectedElement!.getContentRect().center.dx;
+    double elementCenterY = mSelectedElement!.getContentRect().center.dy;
     for (int i = 0; i < mNoRuleRectList.length; i++) {
       if (mNoRuleRectList[i].contains(Offset(elementCenterX, elementCenterY))) {
         return NOT_IN_RULE;
       }
     }
 
-    double viewCenterY = mEditRect.height * Y_RULES[1];
+    double viewCenterY = mEditRect!.height * Y_RULES[1];
     if (abs(viewCenterY - elementCenterY) < CHECK_Y_IS_IN_RULE_THRESHOLD) {
       return Y_RULES[1];
     }
 
-    double elementTop = mSelectedElement
-        .getContentRect()
-        .top;
-    double viewTop = mEditRect.height * Y_RULES[0];
+    double elementTop = mSelectedElement!.getContentRect().top;
+    double viewTop = mEditRect!.height * Y_RULES[0];
     if (abs(viewTop - elementTop) < CHECK_Y_IS_IN_RULE_THRESHOLD) {
       return Y_RULES[0];
     }
 
-    double elementBottom = mSelectedElement
-        .getContentRect()
-        .bottom;
-    double viewBottom = mEditRect.height * Y_RULES[2];
+    double elementBottom = mSelectedElement!.getContentRect().bottom;
+    double viewBottom = mEditRect!.height * Y_RULES[2];
     if (abs(viewBottom - elementBottom) < CHECK_Y_IS_IN_RULE_THRESHOLD) {
       return Y_RULES[2];
     }
@@ -267,8 +239,8 @@ double abs(double num) {
 }
 
 class RuleLine {
-  Offset mStartPoint;
-  Offset mEndPoint;
+  late Offset mStartPoint;
+  late Offset mEndPoint;
 
   @override
   String toString() {
@@ -285,7 +257,7 @@ class RuleLineWidget extends CustomPainter {
     ..style = PaintingStyle.stroke
     ..color = Color(0XFF33B5E5);
 
-  List<RuleLine> _mRuleLines;
+  List<RuleLine?> _mRuleLines;
 
   RuleLineWidget(this._mRuleLines);
 
@@ -297,14 +269,11 @@ class RuleLineWidget extends CustomPainter {
     }
 
     for (int i = 0; i < _mRuleLines.length; i++) {
-      if (_mRuleLines[i] == null ||
-          _mRuleLines[i].mStartPoint == null ||
-          _mRuleLines[i].mEndPoint == null) {
+      if (_mRuleLines[i] == null || _mRuleLines[i]?.mStartPoint == null || _mRuleLines[i]?.mEndPoint == null) {
         print("$TAG onDraw start or end point is null");
         continue;
       }
-      canvas.drawLine(
-          _mRuleLines[i].mStartPoint, _mRuleLines[i].mEndPoint, sLinePaint);
+      canvas.drawLine(_mRuleLines[i]!.mStartPoint, _mRuleLines[i]!.mEndPoint, sLinePaint);
     }
   }
 

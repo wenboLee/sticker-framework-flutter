@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:sticker/rotate_scale_gesture_recognizer.dart';
 import 'package:vector_math/vector_math_64.dart';
+
+import 'rotate_scale_gesture_recognizer.dart';
 
 const double MIN_SCALE_FACTOR = 0.3; // 最小缩放倍数
 const double MAX_SCALE_FACTOR = 4.0; // 最大缩放倍数
@@ -18,7 +19,7 @@ abstract class WsElement {
 
   double mOriginHeight; // 初始化时内容的高度
 
-  Rect mEditRect; // 可绘制的区域
+  late Rect mEditRect; // 可绘制的区域
 
   double mRotate = 0.0; // 图像顺时针旋转的角度，以 pi 为基准
 
@@ -32,9 +33,9 @@ abstract class WsElement {
 
   bool mIsDoubleFingerScaleAndRotate = false; // 是否处于双指旋转缩放的状态
 
-  Widget mElementShowingWidget; // 展示内容的 widget
+  late Widget mElementShowingWidget; // 展示内容的 widget
 
-  Offset mOffset; // ElementContainerWidget 相对屏幕的位移
+  late Offset mOffset; // ElementContainerWidget 相对屏幕的位移
 
   WsElement(this.mOriginWidth, this.mOriginHeight);
 
@@ -87,18 +88,15 @@ abstract class WsElement {
   double mBaseRotate = 0;
 
   /// 开始双指旋转缩放
-  onDoubleFingerScaleAndRotateStart(
-      RotateScaleStartDetails rotateScaleStartDetails) {
+  onDoubleFingerScaleAndRotateStart(RotateScaleStartDetails rotateScaleStartDetails) {
     mIsDoubleFingerScaleAndRotate = true;
     mBaseScale = mScale;
     mBaseRotate = mRotate;
-    print(
-        "onDoubleFingerScaleAndRotateStart mBaseScale:$mBaseScale, mBaseRotate:$mRotate");
+    print("onDoubleFingerScaleAndRotateStart mBaseScale:$mBaseScale, mBaseRotate:$mRotate");
   }
 
   /// 双指旋转缩放中
-  onDoubleFingerScaleAndRotateProcess(
-      RotateScaleUpdateDetails rotateScaleUpdateDetails) {
+  onDoubleFingerScaleAndRotateProcess(RotateScaleUpdateDetails rotateScaleUpdateDetails) {
     mScale = mBaseScale * rotateScaleUpdateDetails.scale;
     mScale = (mScale < MIN_SCALE_FACTOR ? MIN_SCALE_FACTOR : mScale);
     mScale = (mScale > MAX_SCALE_FACTOR ? MAX_SCALE_FACTOR : mScale);
@@ -106,9 +104,7 @@ abstract class WsElement {
     // todo 弄清为啥这里有问题
 //    mRotate = (mRotate % math.pi);
     print(
-        "onDoubleFingerScaleAndRotate s:$rotateScaleUpdateDetails, mScale:$mScale, mRotate:$mRotate, s.scale:${rotateScaleUpdateDetails
-            .scale}, s.rotation:${rotateScaleUpdateDetails
-            .rotation}, mBaseScale:$mBaseScale, mBaseRotate:$mBaseRotate");
+        "onDoubleFingerScaleAndRotate s:$rotateScaleUpdateDetails, mScale:$mScale, mRotate:$mRotate, s.scale:${rotateScaleUpdateDetails.scale}, s.rotation:${rotateScaleUpdateDetails.rotation}, mBaseScale:$mBaseScale, mBaseRotate:$mBaseRotate");
   }
 
   /// 双指旋转缩放结束
@@ -126,10 +122,10 @@ abstract class WsElement {
   bool isPointInTheRect(double motionEventX, double motionEventY, Rect rect) {
     double centerX = getContentRect().center.dx;
     double centerY = getContentRect().center.dy;
-    double originX = (motionEventX - centerX) * math.cos(-mRotate) -
-        (motionEventY - centerY) * math.sin(-mRotate) + centerX;
-    double originY = (motionEventX - centerX) * math.sin(-mRotate) +
-        (motionEventY - centerY) * math.cos(-mRotate) + centerY;
+    double originX =
+        (motionEventX - centerX) * math.cos(-mRotate) - (motionEventY - centerY) * math.sin(-mRotate) + centerX;
+    double originY =
+        (motionEventX - centerX) * math.sin(-mRotate) + (motionEventY - centerY) * math.cos(-mRotate) + centerY;
     return rect.contains(Offset(originX, originY));
   }
 
@@ -162,14 +158,10 @@ abstract class WsElement {
     double contentWidth = mOriginWidth;
     double contentHeight = mOriginHeight;
     Rect originContentRect = Rect.fromLTRB(
-        viewCenterX + mMoveX
-            - (contentWidth / 2),
-        viewCenterY + mMoveY
-            - (contentHeight / 2),
-        viewCenterX + mMoveX
-            + (contentWidth / 2),
-        viewCenterY + mMoveY
-            + (contentHeight / 2));
+        viewCenterX + mMoveX - (contentWidth / 2),
+        viewCenterY + mMoveY - (contentHeight / 2),
+        viewCenterX + mMoveX + (contentWidth / 2),
+        viewCenterY + mMoveY + (contentHeight / 2));
     print("getOriginContentRect originContentRect:$originContentRect");
     return originContentRect;
   }
@@ -189,12 +181,10 @@ abstract class WsElement {
   }
 }
 
-bool isSameElement(WsElement wsElementOne,
-    WsElement wsElementTwo) {
+bool isSameElement(WsElement? wsElementOne, WsElement? wsElementTwo) {
   if (wsElementOne == null || wsElementTwo == null) {
     return false;
   } else {
     return identical(wsElementOne, wsElementTwo);
   }
 }
-

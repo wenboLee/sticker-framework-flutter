@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:sticker/rotate_scale_gesture_recognizer.dart';
+import 'package:flutter/rendering.dart';
 
+import 'rotate_scale_gesture_recognizer.dart';
 import 'ws_element.dart';
 
 enum BaseActionMode {
@@ -30,10 +31,10 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
   final GlobalKey globalKey = GlobalKey();
   List<WsElement> mElementList = []; // 元素列表
   Set<ElementActionListener> mElementActionListenerSet = {}; // 监听列表
-  WsElement mSelectedElement; // 当前选中的 元素
+  WsElement? mSelectedElement; // 当前选中的 元素
   BaseActionMode mMode = BaseActionMode.SELECTED_CLICK_OR_MOVE; // 当前手势所处的模式
-  Rect mEditRect; // 当前 widget 的区域
-  Offset mOffset; // 当前 widget 与屏幕左上角位置偏移
+  Rect? mEditRect; // 当前 widget 的区域
+  Offset? mOffset; // 当前 widget 与屏幕左上角位置偏移
   bool mIsNeedAutoUnSelect = true; // 是否需要自动取消选中
   int mAutoUnSelectDuration = 2000; // 自动取消选中的时间，默认 2000 毫秒，
 
@@ -46,39 +47,57 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    RawGestureDetector gestureDetectorTwo = GestureDetector(
-      child: GestureDetector(
-        child: Stack(
-            alignment: AlignmentDirectional.center,
-            key: globalKey,
-            children: mElementList.map((e) {
-              return e.buildTransform();
-            })
-                .toList()
-                .reversed
-                .toList()
-        ),
-        onPanUpdate: onMove,
-        behavior: HitTestBehavior.opaque,
-      ),
+    // RawGestureDetector gestureDetectorTwo = GestureDetector(
+    //   child: GestureDetector(
+    //     child: Stack(
+    //         alignment: AlignmentDirectional.center,
+    //         key: globalKey,
+    //         children: mElementList
+    //             .map((e) {
+    //               return e.buildTransform();
+    //             })
+    //             .toList()
+    //             .reversed
+    //             .toList()),
+    //     onPanUpdate: onMove,
+    //     behavior: HitTestBehavior.opaque,
+    //   ),
+    // ).build(context);
+
+    var gHandlers = GestureRecognizerFactoryWithHandlers<RotateScaleGestureRecognizer>(
+      () => RotateScaleGestureRecognizer(debugOwner: this),
+      (RotateScaleGestureRecognizer instance) {
+        instance
+          ..onStart = onDoubleFingerScaleAndRotateStart
+          ..onUpdate = onDoubleFingerScaleAndRotateProcess
+          ..onEnd = onDoubleFingerScaleAndRotateEnd;
+      },
+    );
+    var g = GestureDetector(
+      child: Stack(
+          alignment: AlignmentDirectional.center,
+          key: globalKey,
+          children: mElementList
+              .map((e) {
+                return e.buildTransform();
+              })
+              .toList()
+              .reversed
+              .toList()),
+      onPanUpdate: onMove,
+      behavior: HitTestBehavior.opaque,
     ).build(context);
-    gestureDetectorTwo.gestures[RotateScaleGestureRecognizer] =
-        GestureRecognizerFactoryWithHandlers<RotateScaleGestureRecognizer>(
-              () => RotateScaleGestureRecognizer(debugOwner: this),
-              (RotateScaleGestureRecognizer instance) {
-            instance
-              ..onStart = onDoubleFingerScaleAndRotateStart
-              ..onUpdate = onDoubleFingerScaleAndRotateProcess
-              ..onEnd = onDoubleFingerScaleAndRotateEnd;
-          },
-        );
+
     return Listener(
       child: ConstrainedBox(
         constraints: BoxConstraints(
           minHeight: double.infinity,
           minWidth: double.infinity,
         ),
-        child: gestureDetectorTwo,
+        child: RawGestureDetector(
+          gestures: <Type, GestureRecognizerFactory>{RotateScaleGestureRecognizer: gHandlers},
+          child: g,
+        ),
       ),
       behavior: HitTestBehavior.opaque,
       onPointerDown: onDown,
@@ -88,13 +107,11 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
 
   onDown(PointerDownEvent event) {
     cancelAutoUnSelect();
-    final x = getRelativeX(event.position.dx),
-        y = getRelativeY(event.position.dy);
+    final x = getRelativeX(event.position.dx), y = getRelativeY(event.position.dy);
     mMode = BaseActionMode.SELECTED_CLICK_OR_MOVE;
-    WsElement clickedElement = findElementByPosition(x, y);
+    WsElement? clickedElement = findElementByPosition(x, y);
 
-    print(
-        "$TAG onDown |||||||||| x:$x,y:$y,clickedElement:$clickedElement,mSelectedElement:$mSelectedElement");
+    print("$TAG onDown |||||||||| x:$x,y:$y,clickedElement:$clickedElement,mSelectedElement:$mSelectedElement");
     if (mSelectedElement != null) {
       if (isSameElement(clickedElement, mSelectedElement)) {
         bool result = downSelectTapOtherAction(event);
@@ -102,7 +119,7 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
           print("$TAG onDown other action");
           return;
         }
-        if (mSelectedElement.isInWholeDecoration(x, y)) {
+        if (mSelectedElement!.isInWholeDecoration(x, y)) {
           mMode = BaseActionMode.SELECTED_CLICK_OR_MOVE;
           print("$TAG onDown SELECTED_CLICK_OR_MOVE");
           return;
@@ -138,11 +155,10 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
     if (scrollSelectTapOtherAction(dragUpdateDetailList)) {
       return;
     } else {
-      if (mMode == BaseActionMode.SELECTED_CLICK_OR_MOVE
-          || mMode == BaseActionMode.SELECT
-          || mMode == BaseActionMode.MOVE) {
-        if (mMode == BaseActionMode.SELECTED_CLICK_OR_MOVE ||
-            mMode == BaseActionMode.SELECT) {
+      if (mMode == BaseActionMode.SELECTED_CLICK_OR_MOVE ||
+          mMode == BaseActionMode.SELECT ||
+          mMode == BaseActionMode.MOVE) {
+        if (mMode == BaseActionMode.SELECTED_CLICK_OR_MOVE || mMode == BaseActionMode.SELECT) {
           onSingleFingerMoveStart(dragUpdateDetailList[0]);
         } else {
           onSingleFingerMoveProcess(dragUpdateDetailList[0]);
@@ -154,52 +170,63 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
   }
 
   onSingleFingerMoveStart(DragUpdateDetails d) {
-    mSelectedElement.onSingleFingerMoveStart();
+    mSelectedElement?.onSingleFingerMoveStart();
     update();
     callListener((elementActionListener) {
-      elementActionListener.onSingleFingerMoveStart(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onSingleFingerMoveStart(mSelectedElement!);
+      }
     });
   }
 
   onSingleFingerMoveProcess(DragUpdateDetails d) {
-    mSelectedElement.onSingleFingerMoveProcess(d);
+    mSelectedElement?.onSingleFingerMoveProcess(d);
     update();
     callListener((elementActionListener) {
-      elementActionListener.onSingleFingerMoveProcess(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onSingleFingerMoveProcess(mSelectedElement!);
+      }
     });
   }
 
   onSingleFingerMoveEnd() {
-    mSelectedElement.onSingleFingerMoveEnd();
+    mSelectedElement?.onSingleFingerMoveEnd();
     update();
     callListener((elementActionListener) {
-      elementActionListener.onSingleFingerMoveEnd(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onSingleFingerMoveEnd(mSelectedElement!);
+      }
     });
   }
 
   onDoubleFingerScaleAndRotateStart(RotateScaleStartDetails s) {
-    mSelectedElement.onDoubleFingerScaleAndRotateStart(s);
+    mSelectedElement?.onDoubleFingerScaleAndRotateStart(s);
     update();
     callListener((elementActionListener) {
-      elementActionListener.onDoubleFingerScaleAndRotateStart(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onDoubleFingerScaleAndRotateStart(mSelectedElement!);
+      }
     });
   }
 
   onDoubleFingerScaleAndRotateProcess(RotateScaleUpdateDetails s) {
-    mSelectedElement.onDoubleFingerScaleAndRotateProcess(s);
+    mSelectedElement?.onDoubleFingerScaleAndRotateProcess(s);
     update();
     callListener((elementActionListener) {
-      elementActionListener.onDoubleFingerScaleAndRotateProcess(
-          mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onDoubleFingerScaleAndRotateProcess(mSelectedElement!);
+      }
     });
   }
 
   onDoubleFingerScaleAndRotateEnd(RotateScaleEndDetails s) {
-    mSelectedElement.onDoubleFingerScaleAndRotateEnd(s);
+    mSelectedElement?.onDoubleFingerScaleAndRotateEnd(s);
     update();
     autoUnSelect();
     callListener((elementActionListener) {
-      elementActionListener.onDoubleFingerScaleRotateEnd(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onDoubleFingerScaleRotateEnd(mSelectedElement!);
+      }
     });
   }
 
@@ -226,11 +253,13 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
 
   /// 添加一个元素，如果元素已经存在，那么就会添加失败
   /// [wsElement] 被添加的元素
-  bool addElement(WsElement wsElement) {
-    if (mEditRect == null || mEditRect.width == 0 || mEditRect.height == 0) {
-      mEditRect = Rect.fromLTRB(0, 0, globalKey.currentContext.size.width,
-          globalKey.currentContext.size.height);
-      RenderBox renderBox = globalKey.currentContext.findRenderObject();
+  Future<bool> addElement(WsElement wsElement) async {
+    if (mEditRect == null || mEditRect!.width == 0 || mEditRect!.height == 0) {
+      await Future.delayed(Duration(milliseconds: 200));
+      print('global Key -- ${globalKey.currentContext?.size}');
+      mEditRect =
+          Rect.fromLTRB(0, 0, globalKey.currentContext?.size?.width ?? 0, globalKey.currentContext?.size?.height ?? 0);
+      RenderStack renderBox = globalKey.currentContext?.findRenderObject() as RenderStack;
       mOffset = renderBox.localToGlobal(Offset.zero);
       print("addElement init mEditRect:$mEditRect, offset:$mOffset");
     }
@@ -249,8 +278,8 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
       nowElement.mZIndex++;
     }
     wsElement.mZIndex = 0;
-    wsElement.mEditRect = mEditRect;
-    wsElement.mOffset = mOffset;
+    wsElement.mEditRect = mEditRect!;
+    wsElement.mOffset = mOffset!;
     if (mElementList.length == 0) {
       mElementList.add(wsElement);
     } else {
@@ -258,7 +287,9 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
     }
     wsElement.add();
     callListener((elementActionListener) {
-      elementActionListener.onAdd(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onAdd(mSelectedElement!);
+      }
     });
     autoUnSelect();
     return true;
@@ -266,7 +297,7 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
 
   /// 删除一个元素，只能删除当前最顶层的元素
   /// [wsElement] 被删除的元素
-  bool deleteElement([WsElement wsElement]) {
+  bool deleteElement([WsElement? wsElement]) {
     if (wsElement == null) {
       if (mElementList.length <= 0) {
         return false;
@@ -286,18 +317,22 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
     }
     wsElement.delete();
     callListener((elementActionListener) {
-      elementActionListener.onDelete(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onDelete(mSelectedElement!);
+      }
     });
     return true;
   }
 
   /// 更新界面
   update() {
-    setState(() {
-      if (mSelectedElement != null) {
-        mSelectedElement.update();
-      }
-    });
+    if (mounted) {
+      setState(() {
+        if (mSelectedElement != null) {
+          mSelectedElement!.update();
+        }
+      });
+    }
   }
 
   /// 选中一个元素，如果需要选中的元素没有被添加到 container 中则选中失败
@@ -316,8 +351,7 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
 
     for (int i = 0; i < mElementList.length; i++) {
       WsElement nowElement = mElementList[i];
-      if (!identical(nowElement, wsElement)
-          && wsElement.mZIndex > nowElement.mZIndex) {
+      if (!identical(nowElement, wsElement) && wsElement.mZIndex > nowElement.mZIndex) {
         nowElement.mZIndex++;
       }
     }
@@ -330,7 +364,7 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
     }
     mSelectedElement = wsElement;
     callListener((elementActionListener) {
-      elementActionListener.onSelect(mSelectedElement);
+      elementActionListener.onSelect(mSelectedElement!);
     });
     return true;
   }
@@ -348,10 +382,12 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
       return false;
     }
 
-    mSelectedElement.unSelect();
+    mSelectedElement!.unSelect();
     mSelectedElement = null;
     callListener((elementActionListener) {
-      elementActionListener.onUnSelect(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onUnSelect(mSelectedElement!);
+      }
     });
     return true;
   }
@@ -359,30 +395,33 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
   /// 根据位置找到 元素
   /// [x] container widget 中的坐标
   /// [y] container widget 中的坐标
-  WsElement findElementByPosition(double x, double y) {
-    WsElement realFoundedElement;
+  WsElement? findElementByPosition(double x, double y) {
+    WsElement? realFoundedElement;
     for (int i = mElementList.length - 1; i >= 0; i--) {
       WsElement nowElement = mElementList[i];
       if (nowElement.isInWholeDecoration(x, y)) {
         realFoundedElement = nowElement;
       }
     }
-    print(
-        "$TAG findElementByPosition |||||||||| realFoundedElement:$realFoundedElement,x:$x,y:$y");
+    print("$TAG findElementByPosition |||||||||| realFoundedElement:$realFoundedElement,x:$x,y:$y");
     return realFoundedElement;
   }
 
   /// 选中之后再次点击选中的元素
   selectedClick(PointerUpEvent event) {
     callListener((elementActionListener) {
-      elementActionListener.onSelectedClick(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onSelectedClick(mSelectedElement!);
+      }
     });
   }
 
   /// 点击空白区域
   onClickBlank(PointerUpEvent event) {
     callListener((elementActionListener) {
-      elementActionListener.onSingleTapBlankScreen(mSelectedElement);
+      if (mSelectedElement != null) {
+        elementActionListener.onSingleTapBlankScreen(mSelectedElement!);
+      }
     });
   }
 
@@ -405,29 +444,27 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
     if (mOffset == null) {
       return screenX;
     }
-    return screenX - mOffset.dx;
+    return screenX - mOffset!.dx;
   }
 
   double getRelativeY(double screenY) {
     if (mOffset == null) {
       return screenY;
     }
-    return screenY - mOffset.dy;
+    return screenY - mOffset!.dy;
   }
 
-  StreamSubscription autoUnSelectFuture;
+  StreamSubscription? autoUnSelectFuture;
 
   /// 一定的时间之后自动取消当前元素的选中
   autoUnSelect() {
     if (mIsNeedAutoUnSelect) {
       cancelAutoUnSelect();
-      autoUnSelectFuture =
-          Future.delayed(Duration(milliseconds: mAutoUnSelectDuration))
-              .asStream().listen((a) {
-            unSelectElement();
-            update();
-            print("autoUnSelect unselect");
-          });
+      autoUnSelectFuture = Future.delayed(Duration(milliseconds: mAutoUnSelectDuration)).asStream().listen((a) {
+        unSelectElement();
+        update();
+        print("autoUnSelect unselect");
+      });
       print("autoUnSelect");
     }
   }
@@ -436,7 +473,7 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
   cancelAutoUnSelect() {
     print("cancelAutoUnSelect");
     if (mIsNeedAutoUnSelect && autoUnSelectFuture != null) {
-      autoUnSelectFuture.cancel();
+      autoUnSelectFuture?.cancel();
       autoUnSelectFuture = null;
       print("cancelAutoUnSelect cancel");
     }
@@ -456,13 +493,11 @@ class ElementContainerWidgetState extends State<ElementContainerWidget> {
   }
 
   /// 移除一个监听器
-  void removeElementActionListener(
-      ElementActionListener elementActionListener) {
+  void removeElementActionListener(ElementActionListener elementActionListener) {
     mElementActionListenerSet.remove(elementActionListener);
   }
 
-  void callListener(
-      Consumer<ElementActionListener> decorationActionListenerConsumer) {
+  void callListener(Consumer<ElementActionListener> decorationActionListenerConsumer) {
     mElementActionListenerSet.map((elementActionListener) {
       decorationActionListenerConsumer(elementActionListener);
     });
@@ -473,9 +508,7 @@ typedef EndRun = void Function();
 
 typedef Consumer<T> = void Function(T t);
 
-
 abstract class ElementActionListener {
-
   /// 增加了一个元素之后的回调
   void onAdd(WsElement element);
 
@@ -514,7 +547,6 @@ abstract class ElementActionListener {
 }
 
 class DefaultElementActionListener implements ElementActionListener {
-
   @override
   void onAdd(WsElement element) {}
 

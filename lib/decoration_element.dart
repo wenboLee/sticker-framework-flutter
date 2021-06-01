@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:sticker/rotate_scale_gesture_recognizer.dart';
-import 'package:sticker/ws_element.dart';
+
+import 'rotate_scale_gesture_recognizer.dart';
+import 'ws_element.dart';
 
 abstract class DecorationElement extends WsElement {
   static const String TAG = "heshixi:DElement";
@@ -11,7 +12,7 @@ abstract class DecorationElement extends WsElement {
 
   static const double REDUNDANT_AREA_WIDTH = 20; // 延伸区域的宽度
 
-  bool mIsSingleFingerScaleAndRotate; // 是否处于单指旋转缩放的状态
+  late bool mIsSingleFingerScaleAndRotate; // 是否处于单指旋转缩放的状态
 
   double mRedundantAreaLeftRight = 0; // 内容区域左右向外延伸的一段距离，用于扩展元素的可点击区域
 
@@ -19,8 +20,7 @@ abstract class DecorationElement extends WsElement {
 
   bool mIsShowDecoration = false;
 
-  DecorationElement(double originWidth, double originHeight)
-      : super(originWidth, originHeight) {
+  DecorationElement(double originWidth, double originHeight) : super(originWidth, originHeight) {
     mRedundantAreaTopBottom = REDUNDANT_AREA_WIDTH + ELEMENT_BUTTON_WIDTH / 2;
     mRedundantAreaLeftRight = REDUNDANT_AREA_WIDTH + ELEMENT_BUTTON_WIDTH / 2;
   }
@@ -40,10 +40,8 @@ abstract class DecorationElement extends WsElement {
     double contentChangeWidth = contentRect.width - originContentRect.width;
     double contentChangeHeight = contentRect.height - originContentRect.height;
     Matrix4 matrix4ScaleForBox = Matrix4.translationValues(0, 0, 0);
-    double boxScale = (getContentRect().width + 2 * mRedundantAreaLeftRight -
-        ELEMENT_BUTTON_WIDTH) /
-        (getOriginContentRect().width + 2 * mRedundantAreaLeftRight -
-            ELEMENT_BUTTON_WIDTH);
+    double boxScale = (getContentRect().width + 2 * mRedundantAreaLeftRight - ELEMENT_BUTTON_WIDTH) /
+        (getOriginContentRect().width + 2 * mRedundantAreaLeftRight - ELEMENT_BUTTON_WIDTH);
     matrix4ScaleForBox.scale(boxScale, boxScale, 1);
     return Transform(
       alignment: Alignment.center,
@@ -63,12 +61,9 @@ abstract class DecorationElement extends WsElement {
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(width: 2.0 / boxScale, color: Colors.white),
-                    left: BorderSide(
-                        width: 2.0 / boxScale, color: Colors.white),
-                    right: BorderSide(
-                        width: 2.0 / boxScale, color: Colors.white),
-                    bottom: BorderSide(
-                        width: 2.0 / boxScale, color: Colors.white),
+                    left: BorderSide(width: 2.0 / boxScale, color: Colors.white),
+                    right: BorderSide(width: 2.0 / boxScale, color: Colors.white),
+                    bottom: BorderSide(width: 2.0 / boxScale, color: Colors.white),
                   ),
                 ),
               ),
@@ -84,8 +79,7 @@ abstract class DecorationElement extends WsElement {
             Positioned(
               child: Transform(
                 alignment: Alignment.center,
-                transform: Matrix4.translationValues(
-                    -contentChangeWidth / 2, -contentChangeHeight / 2, 0),
+                transform: Matrix4.translationValues(-contentChangeWidth / 2, -contentChangeHeight / 2, 0),
                 child: Image.asset(
                   "images/default_decoration_delete.png",
                   width: ELEMENT_BUTTON_WIDTH,
@@ -98,8 +92,7 @@ abstract class DecorationElement extends WsElement {
             Positioned(
               child: Transform(
                 alignment: Alignment.center,
-                transform: Matrix4.translationValues(
-                    contentChangeWidth / 2, contentChangeHeight / 2, 0),
+                transform: Matrix4.translationValues(contentChangeWidth / 2, contentChangeHeight / 2, 0),
                 child: Image.asset(
                   "images/default_decoration_scale.png",
                   width: ELEMENT_BUTTON_WIDTH,
@@ -146,8 +139,7 @@ abstract class DecorationElement extends WsElement {
   }
 
   @override
-  onDoubleFingerScaleAndRotateStart(
-      RotateScaleStartDetails rotateScaleStartDetails) {
+  onDoubleFingerScaleAndRotateStart(RotateScaleStartDetails rotateScaleStartDetails) {
     super.onDoubleFingerScaleAndRotateStart(rotateScaleStartDetails);
     mIsShowDecoration = false;
   }
@@ -165,8 +157,7 @@ abstract class DecorationElement extends WsElement {
   }
 
   ///当前 Element 单指旋转缩放中
-  onSingleFingerScaleAndRotateProcess(double motionEventX,
-      double motionEventY) {
+  onSingleFingerScaleAndRotateProcess(double motionEventX, double motionEventY) {
     scaleAndRotateForSingleFinger(motionEventX, motionEventY);
   }
 
@@ -180,8 +171,7 @@ abstract class DecorationElement extends WsElement {
   ///[motionEventX]
   ///[motionEventY]
   bool isInScaleAndRotateButton(double motionEventX, double motionEventY) {
-    return isPointInTheRect(motionEventX, motionEventY,
-        getScaleAndRotateButtonRect());
+    return isPointInTheRect(motionEventX, motionEventY, getScaleAndRotateButtonRect());
   }
 
   ///判断坐标是否处于 删除按钮 区域中
@@ -198,22 +188,20 @@ abstract class DecorationElement extends WsElement {
     Rect originWholeRect = getOriginWholeRect();
     double halfWidth = originWholeRect.width / 2.0;
     double halfHeight = originWholeRect.height / 2.0;
-    double newRadius = Offset(motionEventX - originWholeRect.center.dx,
-        motionEventY - originWholeRect.center.dy).distance;
+    double newRadius =
+        Offset(motionEventX - originWholeRect.center.dx, motionEventY - originWholeRect.center.dy).distance;
     double oldRadius = Offset(halfHeight, halfWidth).distance;
 
     mScale = newRadius / oldRadius;
     mScale = (mScale < MIN_SCALE_FACTOR ? MIN_SCALE_FACTOR : mScale);
     mScale = (mScale > MAX_SCALE_FACTOR ? MAX_SCALE_FACTOR : mScale);
 
-    mRotate = math.atan2(halfWidth, halfHeight) - math.atan2(
-        motionEventX - originWholeRect.center.dx,
-        motionEventY - originWholeRect.center.dy);
-    print(
-        "$TAG scaleAndRotateForSingleFinger "
-            "mScale:$mScale ,mRotate:$mRotate, "
-            "x:$motionEventX, y:$motionEventY, "
-            "rect:$originWholeRect, newRadius:$newRadius, oldRadius:$oldRadius");
+    mRotate = math.atan2(halfWidth, halfHeight) -
+        math.atan2(motionEventX - originWholeRect.center.dx, motionEventY - originWholeRect.center.dy);
+    print("$TAG scaleAndRotateForSingleFinger "
+        "mScale:$mScale ,mRotate:$mRotate, "
+        "x:$motionEventX, y:$motionEventY, "
+        "rect:$originWholeRect, newRadius:$newRadius, oldRadius:$oldRadius");
   }
 
   ///包括旋转、删除按钮的最小矩形区域
@@ -245,10 +233,7 @@ abstract class DecorationElement extends WsElement {
   Rect getRemoveButtonRect() {
     Rect wholeRect = getWholeRect();
     Rect removeButtonRect = Rect.fromLTRB(
-        wholeRect.left,
-        wholeRect.top,
-        wholeRect.left + ELEMENT_BUTTON_WIDTH,
-        wholeRect.top + ELEMENT_BUTTON_WIDTH);
+        wholeRect.left, wholeRect.top, wholeRect.left + ELEMENT_BUTTON_WIDTH, wholeRect.top + ELEMENT_BUTTON_WIDTH);
     print("getRemoveButtonRect removeButtonRect:$removeButtonRect");
     return removeButtonRect;
   }
@@ -256,13 +241,9 @@ abstract class DecorationElement extends WsElement {
   ///获取 元素 旋转缩放按钮在 @EditRect 坐标下的 Rect
   Rect getScaleAndRotateButtonRect() {
     Rect wholeRect = getWholeRect();
-    Rect scaleAndRotateButtonRect = Rect.fromLTRB(
-        wholeRect.right - ELEMENT_BUTTON_WIDTH,
-        wholeRect.bottom - ELEMENT_BUTTON_WIDTH,
-        wholeRect.right,
-        wholeRect.bottom);
-    print(
-        "getScaleAndRotateButtonRect scaleAndRotateButtonRect:$scaleAndRotateButtonRect");
+    Rect scaleAndRotateButtonRect = Rect.fromLTRB(wholeRect.right - ELEMENT_BUTTON_WIDTH,
+        wholeRect.bottom - ELEMENT_BUTTON_WIDTH, wholeRect.right, wholeRect.bottom);
+    print("getScaleAndRotateButtonRect scaleAndRotateButtonRect:$scaleAndRotateButtonRect");
     return scaleAndRotateButtonRect;
   }
 

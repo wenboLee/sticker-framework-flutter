@@ -1,8 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:sticker/decoration_element.dart';
-import 'package:sticker/element_container_widget.dart';
 
+import 'decoration_element.dart';
+import 'element_container_widget.dart';
 import 'ws_element.dart';
 
 enum DecorationActionMode {
@@ -11,11 +11,10 @@ enum DecorationActionMode {
   CLICK_BUTTON_DELETE,
 }
 
-class DecorationElementContainerWidgetState
-    extends ElementContainerWidgetState {
+class DecorationElementContainerWidgetState extends ElementContainerWidgetState {
   static const String TAG = "heshixi:DECW";
 
-  DecorationActionMode mDecorationActionMode;
+  DecorationActionMode? mDecorationActionMode;
 
   /// 取消选中、删除
   unSelectDeleteAndUpdateTopElement() {
@@ -37,19 +36,16 @@ class DecorationElementContainerWidgetState
   @override
   bool downSelectTapOtherAction(PointerDownEvent event) {
     mDecorationActionMode = DecorationActionMode.NONE;
-    final double x = getRelativeX(event.position.dx),
-        y = getRelativeY(event.position.dy);
-    DecorationElement selectedDecorationElement = mSelectedElement;
+    final double x = getRelativeX(event.position.dx), y = getRelativeY(event.position.dy);
+    DecorationElement selectedDecorationElement = mSelectedElement as DecorationElement;
     if (selectedDecorationElement.isInScaleAndRotateButton(x, y)) {
       // 开始进行单指旋转缩放
-      mDecorationActionMode =
-          DecorationActionMode.SINGER_FINGER_SCALE_AND_ROTATE;
+      mDecorationActionMode = DecorationActionMode.SINGER_FINGER_SCALE_AND_ROTATE;
       selectedDecorationElement.onSingleFingerScaleAndRotateStart();
       callListener((elementActionListener) {
         if (elementActionListener is DecorationElementActionListener) {
           DecorationElementActionListener decorationElementActionListener = elementActionListener;
-          decorationElementActionListener.onSingleFingerScaleAndRotateStart(
-              selectedDecorationElement);
+          decorationElementActionListener.onSingleFingerScaleAndRotateStart(selectedDecorationElement);
         } else {
           print("$TAG not a DecorationElementActionListener");
         }
@@ -69,8 +65,7 @@ class DecorationElementContainerWidgetState
   @override
   bool scrollSelectTapOtherAction(List<DragUpdateDetails> dragUpdateDetails) {
     if (mSelectedElement == null) {
-      print(
-          "$TAG detectorSingleFingerRotateAndScale scale and rotate but not select");
+      print("$TAG detectorSingleFingerRotateAndScale scale and rotate but not select");
       return false;
     }
 
@@ -78,18 +73,15 @@ class DecorationElementContainerWidgetState
       return true;
     }
 
-    if (mDecorationActionMode ==
-        DecorationActionMode.SINGER_FINGER_SCALE_AND_ROTATE) {
-      DecorationElement selectedDecorationElement = mSelectedElement;
+    if (mDecorationActionMode == DecorationActionMode.SINGER_FINGER_SCALE_AND_ROTATE) {
+      DecorationElement selectedDecorationElement = mSelectedElement as DecorationElement;
       selectedDecorationElement.onSingleFingerScaleAndRotateProcess(
-          getRelativeX(dragUpdateDetails[0].globalPosition.dx),
-          getRelativeY(dragUpdateDetails[0].globalPosition.dy));
+          getRelativeX(dragUpdateDetails[0].globalPosition.dx), getRelativeY(dragUpdateDetails[0].globalPosition.dy));
       update();
       callListener((elementActionListener) {
         if (elementActionListener is DecorationElementActionListener) {
           DecorationElementActionListener decorationElementActionListener = elementActionListener;
-          decorationElementActionListener.onSingleFingerScaleAndRotateProcess(
-              selectedDecorationElement);
+          decorationElementActionListener.onSingleFingerScaleAndRotateProcess(selectedDecorationElement);
         } else {
           print("$TAG not a DecorationElementActionListener");
         }
@@ -107,26 +99,23 @@ class DecorationElementContainerWidgetState
       return false;
     }
 
-    DecorationElement selectedDecorationElement = mSelectedElement;
+    DecorationElement selectedDecorationElement = mSelectedElement as DecorationElement;
     if (mDecorationActionMode == DecorationActionMode.CLICK_BUTTON_DELETE &&
-        selectedDecorationElement.isInRemoveButton(
-            getRelativeX(event.position.dx), getRelativeY(event.position.dy))) {
+        selectedDecorationElement.isInRemoveButton(getRelativeX(event.position.dx), getRelativeY(event.position.dy))) {
       unSelectDeleteAndUpdateTopElement();
       mDecorationActionMode = DecorationActionMode.NONE;
       print("$TAG upSelectTapOtherAction delete");
       return true;
     }
 
-    if (mDecorationActionMode ==
-        DecorationActionMode.SINGER_FINGER_SCALE_AND_ROTATE) {
+    if (mDecorationActionMode == DecorationActionMode.SINGER_FINGER_SCALE_AND_ROTATE) {
       selectedDecorationElement.onSingleFingerScaleAndRotateEnd();
       mDecorationActionMode = DecorationActionMode.NONE;
       update();
       callListener((elementActionListener) {
         if (elementActionListener is DecorationElementActionListener) {
           DecorationElementActionListener decorationElementActionListener = elementActionListener;
-          decorationElementActionListener.onSingleFingerScaleAndRotateEnd(
-              selectedDecorationElement);
+          decorationElementActionListener.onSingleFingerScaleAndRotateEnd(selectedDecorationElement);
         } else {
           print("$TAG not a DecorationElementActionListener");
         }
@@ -149,10 +138,8 @@ abstract class DecorationElementActionListener extends ElementActionListener {
   void onSingleFingerScaleAndRotateEnd(DecorationElement element);
 }
 
-class DefaultDecorationElementActionListener
-    extends DefaultElementActionListener
+class DefaultDecorationElementActionListener extends DefaultElementActionListener
     implements DecorationElementActionListener {
-
   @override
   void onSingleFingerScaleAndRotateStart(DecorationElement element) {}
 
